@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <circle cx="16" cy="16" r="15" fill="#0c1929" stroke="#29b6f6" stroke-width="2"/>
+  <circle cx="16" cy="16" r="6" stroke="#29b6f6" stroke-width="1.5" opacity="0.7"/>
+  <text x="16" y="17.5" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-size="9" font-weight="700" fill="#7ed3fc">Z</text>
+</svg>
