@@ -1,7 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { CounterCard } from './CounterCard'
 import { daysSinceStart } from './dateUtils'
-import { loadCounters, loadMeta, saveCounters, saveMeta } from './storage'
+import {
+  exportCountersBackup,
+  importCountersBackup,
+  loadCounters,
+  loadMeta,
+  saveCounters,
+  saveMeta,
+} from './storage'
 import type { DayCounter, ThemeId } from './types'
 import { MILESTONE_DAYS } from './types'
 
@@ -13,9 +21,11 @@ export default function App() {
   const [counters, setCounters] = useState<DayCounter[]>(() => loadCounters())
   const [modalOpen, setModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [backupNotice, setBackupNotice] = useState<string | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftDate, setDraftDate] = useState(() => todayYmd())
   const [draftTheme, setDraftTheme] = useState<ThemeId>('ocean')
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     saveCounters(counters)
@@ -68,15 +78,58 @@ export default function App() {
     setModalOpen(false)
   }, [draftTitle, draftDate, draftTheme])
 
+  const exportBackup = useCallback(() => {
+    const body = exportCountersBackup(counters)
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadTextFile(`zoochey-backup-${stamp}.json`, body, 'application/json')
+    setBackupNotice(`Backup exported (${counters.length.toLocaleString('en-US')} items).`)
+  }, [counters])
+
+  const openImportPicker = useCallback(() => {
+    importInputRef.current?.click()
+  }, [])
+
+  const onImportFile = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const text = await file.text()
+      const imported = importCountersBackup(text)
+      setCounters(imported)
+      setBackupNotice(`Backup imported (${imported.length.toLocaleString('en-US')} items).`)
+    } catch {
+      setBackupNotice('Import failed. Please choose a valid backup JSON file.')
+    } finally {
+      event.target.value = ''
+    }
+  }, [])
+
   return (
     <div className="app">
       <header className="app__header">
+        <div className="app__header-tools">
+          <button type="button" className="btn btn--ghost" onClick={exportBackup}>
+            Export backup
+          </button>
+          <button type="button" className="btn btn--ghost" onClick={openImportPicker}>
+            Import backup
+          </button>
+          <input
+            ref={importInputRef}
+            className="sr-only"
+            type="file"
+            accept="application/json,.json"
+            onChange={onImportFile}
+          />
+        </div>
         <p className="app__wordmark">Zoochey</p>
-        <h1 className="app__title">Your day counts</h1>
+        <h1 className="app__title">Countdown timer</h1>
         <p className="app__subtitle">
           Birthdays, anniversaries, streaks — each visit starts fresh on this
           device; nothing is stored in the cloud.
         </p>
+        {backupNotice && <p className="app__backup-notice">{backupNotice}</p>}
       </header>
 
       <main className="app__main">
@@ -209,4 +262,14 @@ function todayYmd(): string {
   const m = String(t.getMonth() + 1).padStart(2, '0')
   const d = String(t.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+function downloadTextFile(filename: string, body: string, mimeType: string): void {
+  const blob = new Blob([body], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }

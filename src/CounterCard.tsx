@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
   addCalendarDays,
@@ -20,6 +21,7 @@ export function CounterCard({ item, onChange, onRemove }: Props) {
   const days = daysSinceStart(item.startDate)
   const nextM = nextMilestoneDay(days)
   const daysToNext = nextM !== null ? nextM - days : null
+  const [expanded, setExpanded] = useState(false)
 
   const setTheme = (themeId: ThemeId) => onChange({ ...item, themeId })
 
@@ -75,7 +77,17 @@ export function CounterCard({ item, onChange, onRemove }: Props) {
         </div>
       </div>
 
-      <section className="counter-card__milestones" aria-label="Milestones">
+      <button
+        type="button"
+        className="counter-card__toggle"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        {expanded ? 'Hide milestones' : 'Show milestones'}
+      </button>
+
+      {expanded && (
+        <section className="counter-card__milestones" aria-label="Milestones">
         <h3 className="counter-card__milestones-title">Milestones</h3>
         <ul className="counter-card__milestone-list">
           {MILESTONE_DAYS.map((m) => {
@@ -116,7 +128,8 @@ export function CounterCard({ item, onChange, onRemove }: Props) {
         {nextM === null && (
           <p className="counter-card__next">Past all listed milestones 🎉</p>
         )}
-      </section>
+        </section>
+      )}
     </article>
   )
 }
